@@ -1,12 +1,18 @@
 import * as tf from '@tensorflow/tfjs';
 import '@tensorflow/tfjs-backend-wasm';
+import "regenerator-runtime/runtime";
+import * as model from './model';
 
 
-// console.log(tf.version);
-// tf.setBackend('wasm')
-// tf.ready().then(() => {
-//     console.log(tf.getBackend());
-// });
+
+console.log("line1");
+const init = async () => {
+    await tf.ready();
+    console.log(tf.getBackend());
+    model.train();
+}
+init();
+console.log("line4")
 //
 // const age = tf.tensor1d([30, 25], 'int32');
 // age.print();
@@ -23,9 +29,4 @@ import '@tensorflow/tfjs-backend-wasm';
 // multiplier.print();
 // console.log(multiplier.dtype);
 
-const income_source_1 = tf.tensor1d([100, 200, 300, 150]);
-const income_source_2 = tf.tensor1d([50, 70, 30, 20]);
-const total_income = tf.add(income_source_1, income_source_2);
-console.log(`total income is ${total_income}`);
 
-const var_1 = tf.variable(income_source_1);

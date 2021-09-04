@@ -1,7 +1,7 @@
 {
   "name": "toxicity-detector",
   "version": "1.0.0",
-  "description": "detects and barrs toxic comments",
+  "description": "detects and handles toxic comments",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -14,15 +14,23 @@
     "@tensorflow/tfjs": "^3.9.0",
     "@tensorflow/tfjs-backend-wasm": "^3.9.0",
     "@tensorflow/tfjs-node": "^3.9.0",
+    "@tensorflow/tfjs-vis": "^1.5.1",
     "express": "^4.17.1"
   },
   "devDependencies": {
     "parcel-plugin-static-files-copy": "^2.6.0"
   },
   "staticFiles": {
-    "staticPath": "./node_modules/@tensorflow/tfjs-backend-wasm/dist",
-    "excludeGlob": [
-      "**/!(*.wasm)"
+    "staticPath": [
+      {
+        "excludeGlob": [
+          "**/!(*.wasm)"
+        ],
+        "staticPath": "./node_modules/@tensorflow/tfjs-backend-wasm/dist"
+      },
+      {
+        "staticPath": "src/assets"
+      }
     ]
   }
 }

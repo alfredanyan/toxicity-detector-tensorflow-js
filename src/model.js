@@ -142,6 +142,9 @@ const BATCH_SIZE = 16;
 const render = true;
 const TRAINING_EPOCHS = 10;
 
+const MODEL_ID = 'toxicity-detector-tfidf';
+const IDF_STORAGE_ID = 'toxicity-idfs';
+const DICTIONARY_STORAGE_ID = 'toxicity-tfidf-dictionary';
 //HELPER FUNCTIONS
 
 const getInverseDocumentFrequency = (documentTokens, dictionary) => {
@@ -440,6 +443,59 @@ const getMoreEvaluationSummaries = async (model, testDataset) => {
 
 }
 
+const exportModel = async (model, modelID, idfs, idfsStorageID, dictionary, dictionaryStorageID) => {
+    // const modelPath = `downloads://${modelID}`
+    const modelPath = `localstorage://${modelID}`;
+    const saveModelResults = await model.save(modelPath);
+    console.log('model exported');
+
+    localStorage.setItem(dictionaryStorageID, JSON.stringify(dictionary));
+    localStorage.setItem(idfsStorageID, JSON.stringify(idfs));
+    console.log('dictionary and IDFs exported');
+    return saveModelResults;
+}
+
+const loadModel = async () => {
+    const modelPath = `localstorage://${MODEL_ID}`;
+    console.log(modelPath);
+
+    const models = await tf.io.listModels();
+    if (models[modelPath]) {
+        console.log('model exists');
+        const model_loaded = await tf.loadLayersModel(modelPath);
+        return model_loaded;
+    } else {
+        console.log('no model available');
+        return null;
+    }
+}
+
+const predictResults = async (sentence, model) => {
+    console.log('prediction started');
+
+    const idfObject = localStorage.getItem(IDF_STORAGE_ID);
+    const idfs = JSON.parse(idfObject);
+
+    const dictionaryObject = localStorage.getItem(DICTIONARY_STORAGE_ID);
+    const dictionary = JSON.parse(dictionaryObject);
+
+    //get encoded values
+    const encoded = encoder(sentence.toLowerCase().trim(), dictionary, idfs);
+
+    const encodedTensor = tf.tensor2d([encoded], [1, dictionary.length]);
+
+
+    //make predictions
+    const predictionResult = model.predict(encodedTensor);
+    const predictionScore = predictionResult.dataSync();
+
+    //extract prediction class
+    const predictedClass = (predictionScore >= 0.5) ? "toxic" : "non-toxic";
+    const resultMessage = `Probability : ${predictionScore}, Class: ${predictedClass}`;
+    console.log(resultMessage);
+    return predictedClass;
+}
+
 const run = async () => {
   const rawDataResult = readRawData();
   const labels = [];
@@ -504,7 +560,22 @@ const run = async () => {
 
     await evaluateModel(model,  testDataset);
     await getMoreEvaluationSummaries(model, testDataset)
+
+    // //export model
+    const exportResult = await exportModel(model, MODEL_ID, idfs, IDF_STORAGE_ID, dictionary, DICTIONARY_STORAGE_ID);
+
+    const model_loaded = await loadModel();
+    model_loaded.summary();
+
+    //predict using trained model
+    const example_1 = 'You are doing great';
+    predictResults(example_1, model_loaded);
+
+    const example_2 = 'You are fucked up';
+    predictResults(example_2, model_loaded);
 };
+
+
 
 
 

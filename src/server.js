@@ -1,5 +1,6 @@
 const tf = require('@tensorflow/tfjs');
 require('@tensorflow/tfjs-node');
+// const tfvis = require('@tensorflow/tfjs-vis');
 
 const express = require('express');
 const app = express();
@@ -10,6 +11,7 @@ app.get('/train', function(req,res) {
         const message = "Loaded TensorFlow.js version" + " " +
             tf.version.tfjs + " \n with backend " + tf.getBackend();
         console.log(message);
+        run();
         res.send(message);
     })
 })
@@ -18,12 +20,11 @@ app.listen(9000, function (req,res) {
     console.log('Running server on port 9000...');
 })
 
-
-
-const csvUrl = "file://.src/assets/data/toxic_data_sample.csv";
+// const csvUrl = "file://.src/assets/data/toxic_data_sample.csv";
 
 app.use(express.static('src/assets'))
-const url = "localhost:9000/data/toxic_data_sample.csv";
+const csvUrl = "http://localhost:9000/data/toxic_data_sample.csv";
+
 const stopwords = [
   "i",
   "me",
@@ -156,7 +157,7 @@ const stopwords = [
 let tmpDictionary = {};
 let EMBEDDING_SIZE = 1000;
 const BATCH_SIZE = 16;
-const render = true;
+const render = false;
 const TRAINING_EPOCHS = 10;
 
 //HELPER FUNCTIONS

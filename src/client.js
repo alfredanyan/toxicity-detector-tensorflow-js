@@ -3,6 +3,12 @@ import '@tensorflow/tfjs-backend-wasm';
 import "regenerator-runtime/runtime";
 import * as model from './model';
 
+import $ from "jquery";
+import "materialize-css";
+import "mmaterial-icons";
+import "./main.scss";
+
+M.AutoInit();
 
 
 console.log("line1");

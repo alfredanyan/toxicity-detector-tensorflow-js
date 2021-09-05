@@ -15,7 +15,10 @@
     "@tensorflow/tfjs-backend-wasm": "^3.9.0",
     "@tensorflow/tfjs-node": "^3.9.0",
     "@tensorflow/tfjs-vis": "^1.5.1",
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "jquery": "^3.6.0",
+    "material-icons": "^1.2.1",
+    "materialize-css": "^1.0.0-rc.2"
   },
   "devDependencies": {
     "parcel-plugin-static-files-copy": "^2.6.0"

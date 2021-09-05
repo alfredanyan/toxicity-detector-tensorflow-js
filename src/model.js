@@ -5,6 +5,7 @@ export const train = () => {
     run();
   });
 };
+
 const csvUrl = "data/toxic_data_sample.csv";
 const stopwords = [
   "i",
@@ -300,7 +301,7 @@ const trainTestSplit = (dataSet, nrows) => {
     .shuffle(nrows, SEED)
     .take(trainValidationCount);
 
-  const testDataSet = dataSet
+  const testDataset = dataSet
     .shuffle(nrows, SEED)
     .skip(trainValidationCount)
     .batch(BATCH_SIZE);
@@ -316,7 +317,7 @@ const trainTestSplit = (dataSet, nrows) => {
     return {
         trainingDataset,
         validationDataset,
-        testDataSet
+        testDataset
     };
 };
 
@@ -392,6 +393,53 @@ const trainModel = async (model, trainingDataset, validationDataset) => {
         return model;
 }
 
+const evaluateModel = async (model, testDataset) => {
+    const modelResult = await model.evaluateDataset(testDataset);
+    const testLoss = modelResult[0].dataSync()[0];
+    const testAcc = modelResult[1].dataSync()[0];
+
+    console.log(`Loss on Test Dataset : ${testLoss.toFixed(4)}`);
+    console.log(`Accuracy on Test Dataset: ${testAcc.toFixed(4)}`);
+}
+
+const getMoreEvaluationSummaries = async (model, testDataset) => {
+    const allActualLabels = [];
+    const allPredictedLabels = [];
+
+    await testDataset.forEachAsync((row) => {
+        const actualLabels = row['ys'].dataSync();
+        actualLabels.forEach((x) => allActualLabels.push(x));
+    
+        const features = row['xs'];
+        const prediction = model.predictOnBatch(tf.squeeze(features, 1));
+        const predictedLabels = tf.round(prediction).dataSync();
+        predictedLabels.forEach((x) => allPredictedLabels.push(x));
+    
+    });
+
+    const allActualLabelsTensor = tf.tensor1d(allActualLabels);
+    const allPredictedLabelsTensors = tf.tensor1d(allPredictedLabels);
+
+    const accuracyResult = await tfvis.metrics.accuracy(allActualLabelsTensor, allPredictedLabelsTensors);
+    console.log(`Accuracy result: ${accuracyResult}` )
+
+    //calc per class accuracy
+    const perClassAccuracyResult = await tfvis.metrics.perClassAccuracy(allActualLabelsTensor, allPredictedLabelsTensors);
+    console.log(`Per Class Accuracy result: ${JSON.stringify(perClassAccuracyResult, null, 2)}`);
+
+    const confusionMatrixResult = await tfvis.metrics.confusionMatrix(allActualLabelsTensor, allPredictedLabelsTensors);
+    const confusionMatrixVizResult = { "values": confusionMatrixResult };
+
+    console.log(`confusion matrix : \n ${JSON.stringify(confusionMatrixVizResult, null, 2)}`)
+
+    const surface = { tab: 'Evaluation', name: 'Confusion Matrix'};
+    if (render) {
+        tfvis.render.confusionMatrix(surface, confusionMatrixVizResult);
+    }
+
+
+}
+
 const run = async () => {
   const rawDataResult = readRawData();
   const labels = [];
@@ -440,8 +488,8 @@ const run = async () => {
 //   await dataSet.forEachAsync((e) => console.log(e));
 
   //splitting data sets
-  const {trainingDataset, validationDataset, testDataSet} = trainTestSplit(dataSet, documentTokens.length);
-  await trainingDataset.forEachAsync((e) => console.log(e));
+  const { trainingDataset, validationDataset, testDataset } = trainTestSplit(dataSet, documentTokens.length);
+//   await trainingDataset.forEachAsync((e) => console.log(e));
 
     let model =  buildModel();
 
@@ -453,6 +501,9 @@ const run = async () => {
     }
 
     model = await trainModel(model, trainingDataset, validationDataset);
+
+    await evaluateModel(model,  testDataset);
+    await getMoreEvaluationSummaries(model, testDataset)
 };
 
 

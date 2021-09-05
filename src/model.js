@@ -1,104 +1,460 @@
-import * as tf from '@tensorflow/tfjs';
-import * as tfvis from '@tensorflow/tfjs-vis';
+import * as tf from "@tensorflow/tfjs";
+import * as tfvis from "@tensorflow/tfjs-vis";
 export const train = () => {
-    tf.tidy(() => {
-        run();
-    });
+  tf.tidy(() => {
+    run();
+  });
 };
-const csvUrl = 'data/toxic_data_sample.csv';
-const stopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his', 'himself', 'she', 'her', 'hers', 'herself', 'it', 'its', 'itself', 'they', 'them', 'their', 'theirs', 'themselves', 'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now']
+const csvUrl = "data/toxic_data_sample.csv";
+const stopwords = [
+  "i",
+  "me",
+  "my",
+  "myself",
+  "we",
+  "our",
+  "ours",
+  "ourselves",
+  "you",
+  "your",
+  "yours",
+  "yourself",
+  "yourselves",
+  "he",
+  "him",
+  "his",
+  "himself",
+  "she",
+  "her",
+  "hers",
+  "herself",
+  "it",
+  "its",
+  "itself",
+  "they",
+  "them",
+  "their",
+  "theirs",
+  "themselves",
+  "what",
+  "which",
+  "who",
+  "whom",
+  "this",
+  "that",
+  "these",
+  "those",
+  "am",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "been",
+  "being",
+  "have",
+  "has",
+  "had",
+  "having",
+  "do",
+  "does",
+  "did",
+  "doing",
+  "a",
+  "an",
+  "the",
+  "and",
+  "but",
+  "if",
+  "or",
+  "because",
+  "as",
+  "until",
+  "while",
+  "of",
+  "at",
+  "by",
+  "for",
+  "with",
+  "about",
+  "against",
+  "between",
+  "into",
+  "through",
+  "during",
+  "before",
+  "after",
+  "above",
+  "below",
+  "to",
+  "from",
+  "up",
+  "down",
+  "in",
+  "out",
+  "on",
+  "off",
+  "over",
+  "under",
+  "again",
+  "further",
+  "then",
+  "once",
+  "here",
+  "there",
+  "when",
+  "where",
+  "why",
+  "how",
+  "all",
+  "any",
+  "both",
+  "each",
+  "few",
+  "more",
+  "most",
+  "other",
+  "some",
+  "such",
+  "no",
+  "nor",
+  "not",
+  "only",
+  "own",
+  "same",
+  "so",
+  "than",
+  "too",
+  "very",
+  "s",
+  "t",
+  "can",
+  "will",
+  "just",
+  "don",
+  "should",
+  "now",
+];
 let tmpDictionary = {};
 let EMBEDDING_SIZE = 1000;
+const BATCH_SIZE = 16;
+const render = true;
+const TRAINING_EPOCHS = 10;
 
 //HELPER FUNCTIONS
 
 const getInverseDocumentFrequency = (documentTokens, dictionary) => {
-    return dictionary.map((token) => 1 + Math.log(documentTokens.length / documentTokens.reduce((acc, curr) => curr.includes(token) ? acc + 1 : acc, 0)))
-}
+  return dictionary.map(
+    (token) =>
+      1 +
+      Math.log(
+        documentTokens.length /
+          documentTokens.reduce(
+            (acc, curr) => (curr.includes(token) ? acc + 1 : acc),
+            0
+          )
+      )
+  );
+};
+
+const encoder = (sentence, dictionary, idfs) => {
+  const tokens = tokenize(sentence);
+  const tfs = getTermFrequency(tokens, dictionary);
+  const tfidfs = getTfIdf(tfs, idfs);
+  return tfidfs;
+};
+
+const getTfIdf = (tfs, idfs) => {
+  return tfs.map((element, index) => element * idfs[index]);
+};
+const getTermFrequency = (tokens, dictionary) => {
+  return dictionary.map((token) =>
+    tokens.reduce((acc, curr) => (curr == token ? acc + 1 : acc), 0)
+  );
+};
 
 const readRawData = () => {
-
-    const readData = tf.data.csv(csvUrl, {
-        columnConfigs: {
-            toxic: {
-                isLabel: true
-            }
-        }
-    });
-    return readData;
-}
+  const readData = tf.data.csv(csvUrl, {
+    columnConfigs: {
+      toxic: {
+        isLabel: true,
+      },
+    },
+  });
+  return readData;
+};
 const plotOutputLabelCounts = (labels) => {
-    const labelCounts = labels.reduce((acc, label) => {
-        acc[label] = acc[label] === undefined ? 1 : acc[label] + 1;
-        return acc;
-    }, {});
-    // console.log(labelCounts);
-    const barChartData = [];
-    Object.keys(labelCounts).forEach((key) => {
-        barChartData.push({
-            index: key,
-            value: labelCounts[key]
-        });
+  const labelCounts = labels.reduce((acc, label) => {
+    acc[label] = acc[label] === undefined ? 1 : acc[label] + 1;
+    return acc;
+  }, {});
+  // console.log(labelCounts);
+  const barChartData = [];
+  Object.keys(labelCounts).forEach((key) => {
+    barChartData.push({
+      index: key,
+      value: labelCounts[key],
     });
-    // console.log(barChartData);
-    tfvis.render.barchart({
-        tab: 'Exploration',
-        name: 'Toxic output labels'
-    }, barChartData);
-}
+  });
+  // console.log(barChartData);
+  tfvis.render.barchart(
+    {
+      tab: "Exploration",
+      name: "Toxic output labels",
+    },
+    barChartData
+  );
+};
 const tokenize = (sentence, isCreateDict = false) => {
-    const tmpTokens = sentence.split(/\s+/g);
-    const tokens = tmpTokens.filter((token) => !stopwords.includes(token) && token.length > 0);
+  const tmpTokens = sentence.split(/\s+/g);
+  const tokens = tmpTokens.filter(
+    (token) => !stopwords.includes(token) && token.length > 0
+  );
 
-
-    if (isCreateDict) {
-        const labelCounts = tokens.reduce((acc, token) => {
-            acc[token] = acc[token] === undefined ? 1 : acc[token] +=1;
-            return acc;
-        }, tmpDictionary);
-    }
-    return tmpTokens;
-}
+  if (isCreateDict) {
+    const labelCounts = tokens.reduce((acc, token) => {
+      acc[token] = acc[token] === undefined ? 1 : (acc[token] += 1);
+      return acc;
+    }, tmpDictionary);
+  }
+  return tmpTokens;
+};
 
 const sortDictionaryByValue = (dict) => {
-    const items = Object.keys(dict).map((key) => {
-        return [key, dict[key]];
-    });
-    return items.sort((first, second) => {
-        return second[1] - first[1];
-    });
-}
-const run = async () => {
-    const rawDataResult = readRawData();
-    const labels = [];
-    const comments = [];
-    const documentTokens = [];
+  const items = Object.keys(dict).map((key) => {
+    return [key, dict[key]];
+  });
+  return items.sort((first, second) => {
+    return second[1] - first[1];
+  });
+};
 
-    await rawDataResult.forEachAsync((row) => {
-        // console.log(row);
-        const comment = row['xs']['comment_text'];
-        const trimmedComment = comment.toLowerCase().trim();
-        comments.push(trimmedComment);
-        documentTokens.push(tokenize(trimmedComment, true));
-        labels.push(row['ys']['toxic']);
+//load data
+const prepareData = (dictionary, idfs) => {
+  const preprocess = ({ xs, ys }) => {
+    const comment = xs["comment_text"];
+    const trimmedComment = comment.toLowerCase().trim();
+    const encoded = encoder(trimmedComment, dictionary, idfs);
+    return {
+      xs: tf.tensor2d([encoded], [1, dictionary.length]),
+      ys: tf.tensor2d([ys["toxic"]], [1, 1]),
+    };
+  };
+
+  const readData = tf.data
+    .csv(csvUrl, {
+      columnConfigs: {
+        toxic: {
+          isLabel: true,
+        },
+      },
     })
+    .map(preprocess);
+  return readData;
+};
 
-    //plot labels
-    plotOutputLabelCounts(labels);
-
-    // console.log(Object.keys(tmpDictionary).length);
-    // console.log(tmpDictionary);
+const sampleTest = () => {
+    const documentTokens = [];
+    const testComments = ["I loved the movie", "movie was boring"];
+    testComments.forEach((row) => {
+      const comment = row.toLowerCase();
+      documentTokens.push(tokenize(comment, true));
+    });
+    console.log(tmpDictionary);
     const sortedTmpDictionary = sortDictionaryByValue(tmpDictionary);
-    console.log( sortedTmpDictionary);
-    if (sortedTmpDictionary.length <= EMBEDDING_SIZE) {
-        EMBEDDING_SIZE = sortedTmpDictionary.length;
+    const dictionary = sortedTmpDictionary.map((row) => row[0]);
+    const idfs = getInverseDocumentFrequency(documentTokens, dictionary);
+  
+    testComments.forEach((row) => {
+      const comment = row.toLowerCase();
+      console.log(encoder(comment, dictionary, idfs));
+    });
+  };
+  
+
+const prepareDataUsingGenerator = (comments, labels, dictionary, idfs) => {
+  function* getFeatures() {
+    for (let i = 0; i < comments.length; i++) {
+      //generate one sample at a time
+      const encoded = encoder(comments[i], dictionary, idfs);
+      yield tf.tensor2d([encoded], [1, dictionary.length]);
+    }
+  }
+  function* getLabels() {
+    for (let i = 0; i < labels.length; i++) {
+      yield tf.tensor2d([labels[i]], [1, 1]);
+    }
+  }
+  const xs = tf.data.generator(getFeatures);
+  const ys = tf.data.generator(getLabels);
+  const ds = tf.data.zip({ xs, ys });
+  return ds;
+};
+
+const trainTestSplit = (dataSet, nrows) => {
+  const trainValidationCount = Math.round(nrows * 0.7);
+  const trainingCount = Math.round(nrows * 0.6)
+  const SEED = 7687547;
+
+  const trainValidationData = dataSet
+    .shuffle(nrows, SEED)
+    .take(trainValidationCount);
+
+  const testDataSet = dataSet
+    .shuffle(nrows, SEED)
+    .skip(trainValidationCount)
+    .batch(BATCH_SIZE);
+
+  const trainingDataset = trainValidationData
+    .take(trainingCount)
+    .batch(BATCH_SIZE);
+
+  const validationDataset = trainValidationData
+    .skip(trainingCount)
+    .take(nrows * 0.1);
+
+    return {
+        trainingDataset,
+        validationDataset,
+        testDataSet
+    };
+};
+
+const buildModel = () => {
+    const model = tf.sequential();
+    model.add(tf.layers.dense({
+        inputShape: [EMBEDDING_SIZE],
+        activation: "relu",
+        units: 5
+    }));
+    model.add(tf.layers.dense({
+        activation: "sigmoid",
+        units: 1
+    }));
+    model.compile({
+        loss: "binaryCrossentropy",
+        optimizer: tf.train.adam(0.06),
+        metrics: ["accuracy"]
+    });
+    model.summary();
+    return model;
+    
+}
+
+
+
+const earlyStoppingCallback = tf.callbacks.earlyStopping({
+    monitor: 'val_acc',
+    minDelta: 0.3,
+    patience: 5,
+    verbose: 1
+}); 
+
+
+
+const trainModel = async (model, trainingDataset, validationDataset) => {
+    const history = [];
+    const surface = {
+        name: 'onEpochEnd Performance ', tab: 'Training' };
+
+    const batchHistory = [];
+    const batchSurface = { name: 'onBatchEnd Performance', tab: 'Training' };
+    const messageCallback = new tf.CustomCallback(
+        {
+            onEpochEnd: async (epoch, logs) => {
+                history.push(logs);
+                console.log("Epoch: " + epoch + " loss: " + logs.loss);
+                if (render) {
+                    tfvis.show.history(surface, history, ['loss', 'val_loss', 'acc', 'val_acc']); 
+                }
+            },
+            onBatchEnd: async (batch, logs) => {
+                batchHistory.push(logs);
+                if (render) {
+                    tfvis.show.history(batchSurface, batchHistory, ['loss', 'val_loss', 'acc', 'val_acc'])
+                }
+            } 
+        }
+    );
+    
+    
+    const trainResult = await model.fitDataset(trainingDataset, 
+        {
+            epochs: TRAINING_EPOCHS,
+            validationData: validationDataset,
+
+            callbacks:  [
+                messageCallback,
+                // earlyStoppingCallback 
+            ]
+        }
+    );
+        return model;
+}
+
+const run = async () => {
+  const rawDataResult = readRawData();
+  const labels = [];
+  const comments = [];
+  const documentTokens = [];
+
+  await rawDataResult.forEachAsync((row) => {
+    // console.log(row);
+    const comment = row["xs"]["comment_text"];
+    const trimmedComment = comment.toLowerCase().trim();
+    comments.push(trimmedComment);
+    documentTokens.push(tokenize(trimmedComment, true));
+    labels.push(row["ys"]["toxic"]);
+  });
+
+  //plot labels
+  if (render) {
+      plotOutputLabelCounts(labels);
+  }
+
+  // console.log(Object.keys(tmpDictionary).length);
+  // console.log(tmpDictionary);
+  const sortedTmpDictionary = sortDictionaryByValue(tmpDictionary);
+  // console.log( sortedTmpDictionary);
+  if (sortedTmpDictionary.length <= EMBEDDING_SIZE) {
+    EMBEDDING_SIZE = sortedTmpDictionary.length;
+  }
+
+  const dictionary = sortedTmpDictionary
+    .slice(0, EMBEDDING_SIZE)
+    .map((row) => row[0]);
+  // console.log(dictionary);
+
+  //calculate idf
+  const idfs = getInverseDocumentFrequency(documentTokens, dictionary);
+
+  //preprocessing data
+  // const dataSet = prepareData(dictionary, idfs);
+  // await dataSet.forEachAsync((e) => console.log(e));
+
+  // sampleTest();
+
+  //preprocessing data - approach 2 for large datasets
+
+  const dataSet = prepareDataUsingGenerator(comments, labels, dictionary, idfs);
+//   await dataSet.forEachAsync((e) => console.log(e));
+
+  //splitting data sets
+  const {trainingDataset, validationDataset, testDataSet} = trainTestSplit(dataSet, documentTokens.length);
+  await trainingDataset.forEachAsync((e) => console.log(e));
+
+    let model =  buildModel();
+
+    if (render) {
+        tfvis.show.modelSummary({
+            name: 'Model Summary',
+            tab: 'Model'},
+            model);
     }
 
-    const dictionary = sortedTmpDictionary.slice(0, EMBEDDING_SIZE).map((row) => row[0]);
-    // console.log(dictionary);
+    model = await trainModel(model, trainingDataset, validationDataset);
+};
 
-    //calculate idf
-    const idf = getInverseDocumentFrequency(documentTokens, dictionary);
-    
 
-}
+
+

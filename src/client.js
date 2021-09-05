@@ -5,7 +5,7 @@ import * as model from './model';
 
 import $ from "jquery";
 import "materialize-css";
-import "mmaterial-icons";
+import "material-icons";
 import "./main.scss";
 
 M.AutoInit();

@@ -10,7 +10,11 @@ const stopwords = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 
 let tmpDictionary = {};
 let EMBEDDING_SIZE = 1000;
 
+//HELPER FUNCTIONS
 
+const getInverseDocumentFrequency = (documentTokens, dictionary) => {
+    return dictionary.map((token) => 1 + Math.log(documentTokens.length / documentTokens.reduce((acc, curr) => curr.includes(token) ? acc + 1 : acc, 0)))
+}
 
 const readRawData = () => {
 
@@ -82,9 +86,19 @@ const run = async () => {
     //plot labels
     plotOutputLabelCounts(labels);
 
-    console.log(Object.keys(tmpDictionary).length);
-    console.log(tmpDictionary);
+    // console.log(Object.keys(tmpDictionary).length);
+    // console.log(tmpDictionary);
     const sortedTmpDictionary = sortDictionaryByValue(tmpDictionary);
-    console.log(sortedTmpDictionary);
+    console.log( sortedTmpDictionary);
+    if (sortedTmpDictionary.length <= EMBEDDING_SIZE) {
+        EMBEDDING_SIZE = sortedTmpDictionary.length;
+    }
+
     const dictionary = sortedTmpDictionary.slice(0, EMBEDDING_SIZE).map((row) => row[0]);
+    // console.log(dictionary);
+
+    //calculate idf
+    const idf = getInverseDocumentFrequency(documentTokens, dictionary);
+    
+
 }

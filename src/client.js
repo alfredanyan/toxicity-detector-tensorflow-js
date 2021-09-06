@@ -11,28 +11,32 @@ import "./main.scss";
 M.AutoInit();
 
 
-console.log("line1");
 const init = async () => {
     await tf.ready();
-    console.log(tf.getBackend());
-    model.train();
+    const init_message = "Powered by TensorFlow.js - version: " + tf.version.tfjs + " with backend: " + tf.getBackend();
+    $('#init').text(init_message);
+    // console.log(tf.getBackend());
+    // model.train();
 }
 init();
-console.log("line4")
-//
-// const age = tf.tensor1d([30, 25], 'int32');
-// age.print();
-// tf.print(age);
-// console.log(age.shape);
-// console.log(age.dtype);
-//
-// const age_income_height = tf.tensor2d([[30, 1000, 170], [25, 2000, 168]]);
-// age_income_height.print();
-// console.log(age_income_height.shape);
-// console.log(age_income_height.dtype);
-//
-// const multiplier = tf.scalar(10);
-// multiplier.print();
-// console.log(multiplier.dtype);
+
+var modelOptionSelect = $('select');
+let modelOption = 1;
+modelOptionSelect.on('change', (e) => {
+    modelOption = parseInt(e.target.value);
+});
+
+$('#btn_train').on('click', async () => {
+    switch (modelOption) {
+        case 1:
+            $('#btn_train').addClass("disabled");
+            M.toast({ html: 'Training Started'})
+            console.log("Training custom model with TFIDF features");
+            await model.train();
+            break;
+        default:
+            break; 
+    }
+})
 
 

@@ -564,15 +564,16 @@ const run = async () => {
     // //export model
     const exportResult = await exportModel(model, MODEL_ID, idfs, IDF_STORAGE_ID, dictionary, DICTIONARY_STORAGE_ID);
 
-    const model_loaded = await loadModel();
-    model_loaded.summary();
+    //load model
+    // const model_loaded = await loadModel();
+    // model_loaded.summary();
 
-    //predict using trained model
-    const example_1 = 'You are doing great';
-    predictResults(example_1, model_loaded);
+    // //predict using trained model
+    // const example_1 = 'You are doing great';
+    // predictResults(example_1, model_loaded);
 
-    const example_2 = 'You are fucked up';
-    predictResults(example_2, model_loaded);
+    // const example_2 = 'You are fucked up';
+    // predictResults(example_2, model_loaded);
 };
 
 

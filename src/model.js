@@ -6,7 +6,16 @@ export const train = () => {
   });
 };
 
-const csvUrl = "data/toxic_data_sample.csv";
+export const load = () => {
+    return loadModel();
+}
+
+export const predict = (sentence, model) => {
+    console.log("predict using custom model");
+    return predictResults(sentence, model);
+};
+
+const csvUrl = "data/toxic_data_mid.csv";
 const stopwords = [
   "i",
   "me",
@@ -137,10 +146,10 @@ const stopwords = [
   "now",
 ];
 let tmpDictionary = {};
-let EMBEDDING_SIZE = 1000;
+let EMBEDDING_SIZE = 8000;
 const BATCH_SIZE = 16;
 const render = true;
-const TRAINING_EPOCHS = 10;
+const TRAINING_EPOCHS = 15;
 
 const MODEL_ID = 'toxicity-detector-tfidf';
 const IDF_STORAGE_ID = 'toxicity-idfs';

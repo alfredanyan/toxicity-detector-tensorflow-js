@@ -1,2 +1,2 @@
-# toxicity-detector
+Using AI to check toxic comments before they get posted...
  
